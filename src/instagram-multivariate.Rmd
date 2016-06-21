@@ -1,0 +1,219 @@
+---
+title: Instagram 2-Way Factorial Analysis
+author: Prepared by Viktor Shaumann and Paul Thompson
+output: pdf_document
+toc: true
+fontsize: 12pt
+---
+
+\fontfamily{cmr}
+\fontsize{12}{22}
+\selectfont
+
+\pagebreak
+
+# Executive Summary
+
+The purpose of our analysis is to investigate the results of a multivariate experiment conducted by Instagram. The experiment is designed to measure the relationship between users' engagement time and both type and prevalence of the ads. The two way factorial analysis allows us to quantify the interaction effects of multiple types of variables (type and prevalence) on the response (user engagement time). Therefore, we can estimate which specific types of ads, ad display frequencies or combinations of different types and frequencies reduce or increase the time user spends with the app. 
+
+We would typically expect a higher proportion of ads to negatively impact the user experience. Analysis of experiment results indicates that Instagram could increase the user engagement with their app by including ads that contain video and decreasing prevalence of the actual ads.
+
+# Overview
+
+Mock experiment data was generated to simulate the relationship between user engagement time and both type (picture, video) and prevalence (quantified as a proportion of the posts user sees such as 0, 0.1, 0.2, or 0.5) of the ads.
+
+800 observations were collected, where each possible combination of ad type and ad prevalence was replicated 100 times (runs). For example, one combination would be a video ad that was displayed with 0.5 prevalence (half of the items user saw were ads).
+
+\pagebreak
+
+# Exploratory Data Analysis
+
+Before diving into the analysis, we look at the distributions of each of the variables to familiarize ourselves with the data and get a preliminary idea of differences between levels.
+
+A histogram of the response approximately resembles a bimodal distribution. This could due to the effect that the two factors have on different groups of users.
+
+
+```{r echo=FALSE}
+setwd('.')
+data = read.csv('../data/instagram.txt', sep='\t', header=T)
+
+Time = data$Time
+Type = factor(data$Type, labels = c("Photo", "Video"))
+Prevalence = factor(data$Prevalence)
+```
+
+
+```{r echo=FALSE ,message=FALSE, fig.width=4.3, fig.height=4.3, fig.align='center'}
+#head(insta)
+#dim(insta)
+library(gplots)
+#par(mfrow = c(2,2))
+#hist(data$Time, main='Engagement Time Response')
+hist(data$Time,
+     breaks=21,
+     main='Engagement Time Response',
+     xlab='Seconds',
+     ylab='Frequency',
+     col='firebrick',
+     cex.lab=0.9,
+     cex.main=0.9)
+
+#hist(data$Type)
+#hist(data$Prevalence)
+```
+
+
+# Analysis
+
+The first step in our analysis is to determine whether individual factors or their interactions impact time. We can access these relationships both visually and quantitatively.
+
+## Effect Plots
+
+We can visualize effects of individual factors on response variable (Box plots and Main Effect Plots) as well as the combined effects of every possible combination of factors' levels (Interaction Plots).
+
+Box and Main Effect plots allow us to visually inspect how statistical measures and mean effects vary per level of each factor.
+
+
+### Prevalence
+
+As expected, both a box plot and main effect plot indicate that mean and median engagement time falls dramatically as ad prevalence in the user’s feed is increased from 0% of items shown to 50% of items shown. The box plot also shows that the variance differs little between levels.
+
+```{r echo=FALSE ,message=FALSE, fig.width=8, fig.height=4.3, fig.align='center', warning=FALSE}
+par(mfrow = c(1,2))
+
+boxplot(Time ~ Prevalence, 
+        main = "Engagement Time by Prevalence", 
+        xlab = "Levels", 
+        ylab = "Seconds",
+        cex.lab=0.9,
+        cex.main=0.9)
+
+plotmeans(Time ~ Prevalence, 
+          main = "Main Effect Plot of Prevalence", 
+          xlab = "Levels", 
+          ylab = "Seconds",
+          col='firebrick',
+          cex.lab=0.9,
+          cex.main=0.9)
+
+```
+
+
+### Type
+
+We look at the box plot of engagement type by ad type and main effect plot by ad type. There is a smaller difference in median and mean responses between the two ad types than there were between different prevalence levels. We can see from the Main Effect Plot that the difference in mean response between Photo and Video ads is approximately 5 seconds. There doesn’t seem to be a difference in variance.
+
+
+```{r echo=FALSE ,message=FALSE, fig.width=8, fig.height=4.3, fig.align='center', warning=FALSE}
+par(mfrow = c(1,2))
+
+boxplot(Time ~ Type, 
+        main = "Engagement Time by Ad Type", 
+        xlab = "Levels", 
+        ylab = "Seconds",
+        cex.lab=0.9,
+        cex.main=0.9)
+
+plotmeans(Time ~ Type, 
+          main = "Main Effect Plot of Ad Type", 
+          xlab = "Levels", 
+          ylab = "Seconds",
+          col='firebrick',
+          cex.lab=0.9,
+          cex.main=0.9)
+
+```
+
+
+
+### Pairwise Interaction Plot (Type and  Prevalence)
+
+A Pairwise Interaction Plot allows us to inspect whether an interaction effect between levels of factors is present. For example, we can see whether mean response varies by a specific combination of Type and Prevalence or is constant per each variable. Each point on the plot represents a mean response per combination of two levels, one from each factor.
+When interaction effects between combinations of different levels are present, we expect to see lines that have different slope and direction. When no interaction effect is present, we can expect to see lines that are approximately parallel to each other (same slope and direction).
+
+The Interaction Plot below shows that lines follow approximately the same slope at all points. Therefore, we can conclude that there are no interaction effects present and we should focus on examining effects of the individual factors.
+
+```{r echo=FALSE ,message=FALSE, fig.width=6.2, fig.height=4.3, fig.align='center', warning=FALSE}
+
+interaction.plot(Prevalence, Type, Time, 
+                 main = "Interaction Between Ad Type and Prevalence", 
+                 ylab = "Seconds", 
+                 xlab = "Prevalence",
+                 col='firebrick',
+                 cex.lab=0.9,
+                 cex.main=0.9)
+
+```
+
+## Quantitative Analysis
+
+### Multiple Regression Model
+
+In order to quantify the relationships that were evident from the plots above, we can also perform a formal analysis to quantify an exact effect of different factors and their levels on the response variable.
+
+First step in this analysis is to fit a Multiple Regression Model with each level and all possible interactions of the levels. We performed a residual analysis and verified that assumption of normality and identical distribution are not violated. Please refer to the Appendix for more information. Model was fit using R as follows:
+
+
+```{r}
+model = lm(Time ~ Type + Prevalence + Prevalence*Type)
+```
+
+The results of the model output are shown in the Table 1 below.
+
+```{r, results='asis', message=FALSE, echo=FALSE}
+#stargazer(model,
+#          title = "Time ~ Type + Prevalence + Prevalence*Type", 
+#          type='latex')
+library(xtable)
+options(xtable.comment = FALSE)
+print(xtable(model, caption = "Time ~ Type + Prevalence + Prevalence*Type"),
+       caption.placement = 'top')
+```
+
+\pagebreak
+
+### ANOVA
+
+After we fit the model, we proceed with ANOVA to identify the variables that are responsible for the most variance in the response. These variables are Type, Prevalence and an interaction variable of Type and Prevalence. Table 2 below shows the output of the ANOVA model.
+
+```{r, results='asis', message=FALSE, echo=FALSE}
+print(xtable(anova(model), caption = 'ANOVA'),
+       caption.placement = 'top')
+```
+
+The F-test statistics in the ANOVA table for Type and Prevalence are statistically significant while the F-test statistic for the interaction between Type and Prevalence is not. This means we reject the hypothesis that the effect of different levels of Type and Prevalence on the response is the same. However, we fail to conclude that different levels of Type influences how different levels of Prevalence affect the response and vice versa. Further, this confirms the visual relationship we saw from the interaction plot in previous section. These results indicate that response is impacted by individual levels of each variable rather than their interactions.
+
+Since we reject the null hypothesis that altering the levels of prevalence and type doesn't change the response, we can do t-tests to determine if the individual levels of the factors effect on the response. We will use the lm model summary in Table 1 above for the t-statistics and their corresponding p-values. Unlike with pairwise t-tests between different levels, we are testing the null hypothesis that the estimated coefficient is equal to zero ($H_0: \beta_j = 0$). Therefore, we are testing if the estimated effect of the factor being at that level is significant. Since the p-values for TypeVideo, Prevalence0.1, Prevalence0.2, and Prevalence0.5 are significant, we reject the null hypothesis that these levels don't effect the response differently than if they weren't at these levels.
+
+In order to quantify specific effects of each level on the response we examine results of our Multiple Regression Model in Table 1. Model output indicates that Video and Prevalence 0.1 through 0.5 are statistically significant variables based on their respective p-values. Based on the beta coefficients we quantify effects of each of the levels on the response. For instance, we can see that video ad increases user engagement time by 5.8 seconds compared to the image ad on average, holding all other variables constant. We can also see the individual effects of each of the Prevalence levels on the response. For example, Prevalence of 0.5 decreases the user engagement by 69.6 seconds on average, holding all other variables constant.
+
+# Conclusion
+
+Analysis of experiment results indicates that Instagram would increase their user engagement with their app by including ads that contain video and decrease prevalence of the actual ads.
+Based on this information, Instagram can make a better informed decision on the trade-off of the the user experience and monetization of their app with advertisements.
+
+# Appendix
+
+```{r, message=FALSE, echo=FALSE, fig.width=8, fig.height=8,}
+par(mfrow = c(2,2))
+hist(model$residuals, 
+     main = "Histogram of Residuals",
+     ylab = "Frequency", 
+     xlab = "Residuals",
+     col='firebrick',
+     cex.lab=0.9,
+     cex.main=0.9)
+
+qqnorm(model$residuals, main = "QQ-Plot of Residuals")
+qqline(model$residuals, col = "red")
+plot(model$residuals, main = "Residuals vs. Order", ylab = "Residuals")
+abline(h = 0, col = "red")
+plot(model$fitted, 
+     model$residuals, 
+     main = "Residuals vs. Fitted Values", 
+     ylab = "Residuals", 
+     xlab = "Fitted Values")
+abline(h = 0, col = "firebrick")
+```
+
+
