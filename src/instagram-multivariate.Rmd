@@ -1,6 +1,6 @@
 ---
 title: Instagram 2-Way Factorial Analysis
-author: Prepared by Viktor Shaumann and Paul Thompson
+author: Prepared by Viktor Shaumann
 output: pdf_document
 toc: true
 fontsize: 12pt
